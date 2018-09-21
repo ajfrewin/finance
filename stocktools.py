@@ -89,18 +89,19 @@ class Stock:
         # volume traded so far today
         return self.today['volume'].cumsum()[-1]
 
-    def eu_eval(self, strike, time, type='call', output=False):
-        # uses Black-Scholes formula and historical volatility
-        # to appropriately price a EU call at the given strike
-        # for exercise on the given date
-        t = time/365
+        def option_eval_bsm(self, strike, time, type='call', output=False):
+        '''
+        Valuation of EU option by Black-Scholes formula
+        :param strike: strike price
+        :param time: time to expiry in years
+        :param type: call or put
+        :param output: to include a print command that prints the option value
+        :return: The appropriate value of the option
+        '''
+
+        t = time
         s0 = self.latest
         sigma = self.hist_vol # historical volatility
-
-        s0 = 100.
-        R = 0.05
-        sigma = 0.25
-
         # Black-Scholes formula
         d1 = (log(s0/strike) + (R + (sigma**2)/2)*t)/(sigma*sqrt(t))
         d2 = d1 - sigma * sqrt(t)
@@ -112,8 +113,8 @@ class Stock:
               str(time) + ' days: \n$', round(C0, 2))
         return C0
 
-    def gbm_mcs_dyna(self, K, ttm, type='call'):
-        ''' Valuation of EU option in BSM by Monte Carlo sim
+    def option_eval_mcs(self, K, ttm, type='call'):
+        ''' Valuation of EU option by Monte Carlo sim
         Params
         =======
         K: float
@@ -129,9 +130,7 @@ class Stock:
         dt = ttm / M
         sn = np.random.standard_normal((M + 1, I))
         sigma = self.hist_vol
-        s0 = 100.
-        R = 0.05
-        sigma = 0.25
+        s0 = self.latest
         S = np.zeros((M+1, I))
         S[0] = s0
         # simulate index level at maturity
@@ -148,7 +147,7 @@ class Stock:
         C0 = np.exp(-R * ttm) * 1 / I * np.sum(hT)
         return C0
 
-    def bsm(self,time):
+    def gbm(self,time):
         S0 = self.latest
         M = time # number of days = steps
         dt = 1./365 # one day intervals, expressed in years, MUST BE SMALL
@@ -179,8 +178,3 @@ class Stock:
 
     def plot_hist(self):
         self.historical[['close','Return','Mov_Vol']].plot(subplots=True,figsize=(8,6), grid=True)
-
-# driver below
-MU = Stock('DAX')
-print(MU.gbm_mcs_dyna(95., 1.,type='put'))
-print(MU.eu_eval(95, 365., type='put'))
