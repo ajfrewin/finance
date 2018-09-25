@@ -4,9 +4,15 @@ import matplotlib.pyplot as plt
 import scipy.optimize as sco
 import pandas_datareader.data as web
 
-# Picking a few highly traded assets
+'''
+This script demonstrates how expected return and voltatility is distributed
+amongst a portfolio of several securities, as well as demonstrating the concept
+of the efficient frontier, the line along which all optimal portfolios lie
+'''
+
+# Picking a few highly traded traded
 symbols = ["AAPL", "MSFT", "GOOG", "AMZN", "DB"]
-noa = len(symbols)
+noa = len(symbols) # number of assets
 
 ''' Following lines used for initial import
 data = pd.DataFrame()
@@ -14,7 +20,7 @@ for sym in symbols:
     data[sym] = web.DataReader(sym, data_source='yahoo', end='2014-09-12')['Adj Close']
 data.to_csv('opt_portfolio_example.csv', ',')
 '''
-# Loading data from a save CSV because data_reader me up too much
+# Loading data from a saved CSV because data_reader me up too much
 data = pd.read_csv('opt_portfolio_example.csv',',', index_col=0)
 
 rets = np.log(data / data.shift(1)) # logarithmic returns
@@ -24,7 +30,7 @@ prets = []
 pvols = []
 for p in range(2500):
     weights = np.random.random(noa) # random weights on stock purchases
-    weights /= np.sum(weights)
+    weights /= np.sum(weights) # normalizing
     prets.append(np.sum(rets.mean() * weights) * 252) # expected returns
     pvols.append(np.sqrt(np.dot(weights.T, np.dot(rets.cov() * 252, weights)))) # expected variance
 prets = np.array(prets)
@@ -41,7 +47,7 @@ def statistics(weights):
     pvol : float
         expected portfolio volatility
     pret / pvol : float
-        Sharpe ratio for rf = 0
+        Sharpe ratio for rf (risk-free short rate) = 0
     '''
     weights = np.array(weights)
     pret = np.sum(rets.mean() * weights) * 252
@@ -56,6 +62,10 @@ def min_func_variance(weights):
     # function to minimize absolute variance
     return statistics(weights)[1]**2
 
+def min_func_port(weights):
+    # function to minimize variate, going to be iterated thru
+    return statistics(weights)[1]
+
 # constraining that parameters add up to 1
 cons = ({'type' : 'eq', 'fun' : lambda x: np.sum(x) - 1})
 # bound the weights between 0 and 1
@@ -66,9 +76,7 @@ opts = sco.minimize(min_func_sharpe, noa * [1. / noa,], method='SLSQP', bounds=b
 # absolute minimum variance portfolio
 optv = sco.minimize(min_func_variance, noa * [1. / noa,], method='SLSQP', bounds=bnds, constraints=cons)
 # note: using noa * [1. / noa,] as initial guess, even distribution of securities
-def min_func_port(weights):
-    # function to minimize variate, going to be iterated thru
-    return statistics(weights)[1]
+
 
 # to compute the efficient frontier, we evaluate the minimum variance portfolio
 # a ta given target return
