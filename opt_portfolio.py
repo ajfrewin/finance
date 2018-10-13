@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import scipy.optimize as sco
 import scipy.interpolate as sci
 
+# Asset price data library
+from quantopian.research import prices, symbols
+
 '''
 This script demonstrates how expected return and voltatility is distributed
 amongst a portfolio of several securities, as well as demonstrating the concept
