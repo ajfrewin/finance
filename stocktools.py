@@ -15,8 +15,12 @@ API_KEY = '0AQPGOXILXLKKF2W'# key to use alpha vantage api
 R = 0.019 # risk-free interest rate
 
 def to_panda(dictionary):
+    '''
+    Converts alpha_vantage
+    :param dictionary:
+    :return:
+    '''
     df = pd.DataFrame(index=list(dictionary.keys()),columns=['open','high','low','close','volume'])
-    # create a dataframe with index of dates/times, columns corresponding to dict
     i = 0 # for indexing
     for key in dictionary:
         df.iloc[i] = list(dictionary[key].values())
@@ -89,7 +93,7 @@ class Stock:
         # volume traded so far today
         return self.today['volume'].cumsum()[-1]
 
-        def option_eval_bsm(self, strike, time, type='call', output=False):
+    def option_eval_bsm(self, strike, time, type='call', output=False):
         '''
         Valuation of EU option by Black-Scholes formula
         :param strike: strike price
@@ -113,7 +117,7 @@ class Stock:
               str(time) + ' days: \n$', round(C0, 2))
         return C0
 
-    def option_eval_mcs(self, K, ttm, type='call'):
+    def option_eval_mcs(self, strike, ttm, type='call'):
         ''' Valuation of EU option by Monte Carlo sim
         Params
         =======
@@ -139,9 +143,9 @@ class Stock:
                                    + sigma * np.sqrt(dt) * sn[t])
         # calculating payoff for each case
         if(type=='call'):
-            hT = np.maximum(S[-1]-K, 0)
+            hT = np.maximum(S[-1]-strike, 0)
         else:
-            hT = np.maximum(K - S[-1], 0)
+            hT = np.maximum(strike - S[-1], 0)
 
         # calculate estimator
         C0 = np.exp(-R * ttm) * 1 / I * np.sum(hT)
@@ -162,7 +166,7 @@ class Stock:
         return S
 
     def option_payoff(self, strike, prem, ttx):
-        S = self.bsm(ttx) # run stochastic simulation
+        S = self.gbm(ttx) # run stochastic simulation
         breakeven = strike + prem # breakeven price
         S = S.T # flip to check each simulation
         count = 0
@@ -178,3 +182,14 @@ class Stock:
 
     def plot_hist(self):
         self.historical[['close','Return','Mov_Vol']].plot(subplots=True,figsize=(8,6), grid=True)
+
+AAPL = Stock('AAPL')
+historical = AAPL.get_historical()
+today = AAPL.today.copy()
+# Need to find first index of today, will fix this in the backend later
+idx = today.index.tolist().index('2019-02-20 09:31:00')
+today_time_list = today.index.tolist()
+for i in range(len(today_time_list)):
+    today_time_list[i]=today_time_list[i][11:]
+
+print(AAPL.option_payoff(162.5, 9.73, 16))
